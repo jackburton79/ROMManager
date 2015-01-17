@@ -54,10 +54,9 @@ SQLiteDatabase::Close()
 int
 SQLiteDatabase::ExecuteSQL(const char* sql)
 {
-	sqlite3_stmt* statement = NULL;
 	char* errorMsg = NULL;
 	int status = sqlite3_exec(fSQLiteHandle, sql, callback,
-								&statement, &errorMsg);
+								NULL, &errorMsg);
 	if (status != SQLITE_OK) {
 		std::cerr << "SQL Error: " << errorMsg << std::endl;
 		sqlite3_free(errorMsg);
