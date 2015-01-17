@@ -21,5 +21,6 @@ DatabaseFactory::~DatabaseFactory()
 Database*
 DatabaseFactory::GetDatabase(const char* dbType)
 {
+	// TODO: Implement for real
 	return new SQLiteDatabase();
 }
