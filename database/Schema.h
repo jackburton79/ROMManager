@@ -17,6 +17,8 @@ extern const char* kGamesTable;
 class Schema {
 public:
 	static int Init(Database& database);
+	static int InsertGameRow(Database& database,
+				std::map<std::string, std::string>& values);
 	static int InsertRomRow(Database& database,
 				std::map<std::string, std::string>& values);
 };

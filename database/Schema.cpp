@@ -24,7 +24,7 @@ const char* kCreateRomsTable =
 							"CREATE TABLE main.roms"\
 							"(id INTEGER PRIMARY KEY NOT NULL, "\
 							"game_id int, name STRING, size UNSIGNED INT, "\
-							"crc UNSIGNED INT, sha1 UNSIGNED BIG INT)";
+							"crc UNSIGNED INT, sha1 STRING)";
 
 /* static */
 int
@@ -39,11 +39,19 @@ Schema::Init(Database& database)
 
 /* static */
 int
+Schema::InsertGameRow(Database& database,
+		std::map<std::string, std::string>& values)
+{
+	return 0;
+}
+
+
+/* static */
+int
 Schema::InsertRomRow(Database& database,
 		std::map<std::string, std::string>& values)
 {
 	unsigned long crc = ::strtoul(values["crc"].c_str(), NULL, 16);
-	unsigned long long sha1 = ::strtoull(values["sha1"].c_str(), NULL, 16);
 
 	std::ostringstream formatter;
 	std::string sql = "INSERT INTO ";
@@ -60,11 +68,11 @@ Schema::InsertRomRow(Database& database,
 	formatter << crc;
 	sql.append(formatter.str());
 	sql.append(", ");
-	formatter.str("");
-	formatter << sha1;
-	sql.append(formatter.str());
+	sql.append("\"");
+	sql.append(values["sha1"]);
+	sql.append("\"");
 	sql.append(")");
-	std::cout << "InsertRomRow: " << sql << std::endl;
+	//std::cout << "InsertRomRow: " << sql << std::endl;
 
 	return database.ExecuteSQL(sql.c_str());
 }
