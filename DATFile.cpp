@@ -32,7 +32,6 @@ public:
 class GameElement : public Element {
 public:
 	GameElement();
-	std::string name;
 };
 
 
@@ -130,13 +129,6 @@ DATFile::ParseInto(Database& database)
 	std::cout << "OK!" << std::endl;
 
 
-	/*int status = XMLDoc.LoadFile(file);
-	if (status == tinyxml2::XML_NO_ERROR) {
-		std::cout << "OK!" << std::endl;
-	} else {
-		std::cout << "Failed!: " << XMLDoc.GetErrorStr1() << std::endl;
-	}*/
-
 	delete parser;
 	delete defaultHandler;
 
@@ -145,7 +137,6 @@ DATFile::ParseInto(Database& database)
 }
 
 
-// GameElement
 
 // XMLDATHandler
 MAMEDATHandler::MAMEDATHandler(Database& database)
@@ -174,19 +165,20 @@ MAMEDATHandler::startElement(const XMLCh* const uri,
 		fRomElement = new RomElement;
 	}
 	std::cout << string << ":" << std::endl;
-	XMLString::release(&string);
-
 	for (uint i = 0; i < attrs.getLength(); i++) {
 		char* attrName = XMLString::transcode(attrs.getQName(i));
-	    //std::cout << "\t" << attrName << ": ";
 	    char* attrValue = XMLString::transcode(attrs.getValue(i));
-	    //std::cout << attrValue << std::endl;
-	    if (fRomElement != NULL) {
+	    if (!strcasecmp(string, "rom") && fRomElement != NULL) {
 	    	fRomElement->values[attrName] = attrValue;
+	    } else if (!strcasecmp(string, "game") && fGameElement != NULL) {
+	    	std::cout << "\t" << attrName << ": ";
+	    	std::cout << attrValue << std::endl;
+	    	fGameElement->values[attrName] = attrValue;
 	    }
 	    XMLString::release(&attrName);
 	    XMLString::release(&attrValue);
 	}
+	XMLString::release(&string);
 }
 
 
@@ -200,6 +192,7 @@ MAMEDATHandler::endElement(const XMLCh* const uri,
 	//std::cout << fCharacters.str() << std::endl;
 
 	if (!strcasecmp(string, "game")) {
+		Schema::InsertGameRow(fDatabase, fGameElement->values);
 		delete fGameElement;
 		fGameElement = NULL;
 	} else if (!strcasecmp(string, "rom")) {
