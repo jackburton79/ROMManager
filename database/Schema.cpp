@@ -17,12 +17,12 @@ const char* kRomsTable = "roms";
 const char* kGamesTable = "games";
 const char* kCreateGamesTable =
 							"CREATE TABLE main.games"\
-							"(id INT PRIMARY KEY NOT NULL, "\
+							"(id INTEGER PRIMARY KEY NOT NULL, "\
 							"name STRING)";
 
 const char* kCreateRomsTable =
 							"CREATE TABLE main.roms"\
-							"(id INT PRIMARY KEY NOT NULL, "\
+							"(id INTEGER PRIMARY KEY NOT NULL, "\
 							"game_id int, name STRING, size UNSIGNED INT, "\
 							"crc UNSIGNED INT, sha1 UNSIGNED BIG INT)";
 
@@ -48,9 +48,8 @@ Schema::InsertRomRow(Database& database,
 	std::ostringstream formatter;
 	std::string sql = "INSERT INTO ";
 	sql.append(kRomsTable);
-	sql.append(" (id, game_id, name, size, crc, sha1) ");
+	sql.append(" (game_id, name, size, crc, sha1) ");
 	sql.append("VALUES (");
-	sql.append("0, ");
 	sql.append("0, ");
 	sql.append("\"");
 	sql.append(values["name"]);
