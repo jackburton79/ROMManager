@@ -18,7 +18,7 @@ const char* kGamesTable = "games";
 const char* kCreateGamesTable =
 							"CREATE TABLE main.games"\
 							"(id INTEGER PRIMARY KEY NOT NULL, "\
-							"name STRING)";
+							"name STRING, cloneof STRING)";
 
 const char* kCreateRomsTable =
 							"CREATE TABLE main.roms"\
@@ -42,7 +42,20 @@ int
 Schema::InsertGameRow(Database& database,
 		std::map<std::string, std::string>& values)
 {
-	return 0;
+	std::string sql = "INSERT INTO ";
+	sql.append(kGamesTable);
+	sql.append(" (name, cloneof) ");
+	sql.append("VALUES (");
+	sql.append("\"");
+	sql.append(values["name"]);
+	sql.append("\"");
+	sql.append(", ");
+	sql.append("\"");
+	sql.append(values["cloneof"]);
+	sql.append("\"");
+	sql.append(")");
+	std::cout << "InsertGameRow: " << sql << std::endl;
+	return database.ExecuteSQL(sql.c_str());
 }
 
 
