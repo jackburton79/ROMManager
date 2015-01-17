@@ -8,8 +8,17 @@
 #ifndef SCHEMA_H_
 #define SCHEMA_H_
 
-extern const char* kSchemaInit;
+#include <map>
+#include <string>
 
-extern int InitDatabase(Database* database);
+extern const char* kRomsTable;
+extern const char* kGamesTable;
+
+class Schema {
+public:
+	static int Init(Database& database);
+	static int InsertRomRow(Database& database,
+				std::map<std::string, std::string>& values);
+};
 
 #endif /* SCHEMA_H_ */

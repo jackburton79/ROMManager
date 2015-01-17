@@ -6,6 +6,8 @@
  */
 
 #include "DATFile.h"
+#include "database/Database.h"
+#include "database/Schema.h"
 
 #include <xercesc/sax2/SAX2XMLReader.hpp>
 #include <xercesc/sax2/XMLReaderFactory.hpp>
@@ -15,13 +17,34 @@
 #include <xercesc/util/PlatformUtils.hpp>
 
 #include <iostream>
+#include <map>
 #include <sstream>
+#include <string>
 
 XERCES_CPP_NAMESPACE_USE
 
-class XMLDATHandler : public DefaultHandler {
+class Element {
 public:
-	XMLDATHandler();
+	std::map<std::string, std::string> values;
+};
+
+
+class GameElement : public Element {
+public:
+	GameElement();
+	std::string name;
+};
+
+
+class RomElement : public Element {
+public:
+	RomElement();
+};
+
+
+class MAMEDATHandler : public DefaultHandler {
+public:
+	MAMEDATHandler(Database& database);
 	void startElement(
 	    const XMLCh* const uri,
 	    const XMLCh* const localname,
@@ -41,11 +64,27 @@ public:
 	  );
 
 private:
+	  Database& fDatabase;
 	  std::ostringstream fCharacters;
+	  GameElement* fGameElement;
+	  RomElement* fRomElement;
 };
 
 
 DATFile::DATFile(const char* xmlFile)
+	:
+	fName(xmlFile)
+{
+}
+
+
+DATFile::~DATFile()
+{
+}
+
+
+int
+DATFile::ParseInto(Database& database)
 {
 	try {
 		XMLPlatformUtils::Initialize();
@@ -55,37 +94,37 @@ DATFile::DATFile(const char* xmlFile)
 				<< message << "\n";
 		XMLString::release(&message);
 
-		return;
+		return -1;
 	}
 
-	std::cout << "Loading DAT File " << xmlFile << "... " ;
+	std::cout << "Parsing DAT File " << fName << "... " ;
 	std::flush(std::cout);
 
 	SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
 	parser->setFeature(XMLUni::fgSAX2CoreValidation, true);
 	parser->setFeature(XMLUni::fgSAX2CoreNameSpaces, true);   // optional
 
-	DefaultHandler* defaultHandler = new XMLDATHandler();
+	DefaultHandler* defaultHandler = new MAMEDATHandler(database);
 	parser->setContentHandler(defaultHandler);
 	parser->setErrorHandler(defaultHandler);
 
 	try {
-			parser->parse(xmlFile);
+		parser->parse(fName.c_str());
 	} catch (const XMLException& toCatch) {
 		char* message = XMLString::transcode(toCatch.getMessage());
 		std::cout << "Exception message is: \n"
 			 << message << "\n";
 		XMLString::release(&message);
-		return;
+		return -1;
 	} catch (const SAXParseException& toCatch) {
 		char* message = XMLString::transcode(toCatch.getMessage());
 		std::cout << "Exception message is: \n"
 			 << message << "\n";
 		XMLString::release(&message);
-		return;
+		return -1;
 	} catch (...) {
 		std::cout << "Unexpected Exception \n" ;
-		return;
+		return -1;
 	}
 
 	std::cout << "OK!" << std::endl;
@@ -102,69 +141,96 @@ DATFile::DATFile(const char* xmlFile)
 	delete defaultHandler;
 
 	XMLPlatformUtils::Terminate();
+	return 0;
 }
 
 
-DATFile::~DATFile()
-{
-}
-
-
-int
-DATFile::Parse()
-{
-	return -1;
-}
-
+// GameElement
 
 // XMLDATHandler
-XMLDATHandler::XMLDATHandler()
+MAMEDATHandler::MAMEDATHandler(Database& database)
 	:
-	DefaultHandler()
+	DefaultHandler(),
+	fDatabase(database),
+	fGameElement(NULL),
+	fRomElement(NULL)
 {
 }
 
 
 void
-XMLDATHandler::startElement(const XMLCh* const uri,
+MAMEDATHandler::startElement(const XMLCh* const uri,
 	    const XMLCh* const localname,
 	    const XMLCh* const qname,
 	    const Attributes&  attrs)
 {
 	fCharacters.str("");
 	char* string = XMLString::transcode(localname);
+	if (!strcasecmp(string, "game")) {
+		assert(fGameElement == NULL);
+		fGameElement = new GameElement;
+	} else if (!strcasecmp(string, "rom")) {
+		assert(fRomElement == NULL);
+		fRomElement = new RomElement;
+	}
 	std::cout << string << ":" << std::endl;
 	XMLString::release(&string);
 
-	for (uint i = 0; i< attrs.getLength(); i++) {
-		string = XMLString::transcode(attrs.getQName(i));
-	    std::cout << "\t" << string << ": ";
-	    XMLString::release(&string);
-	    string = XMLString::transcode(attrs.getValue(i));
-	    std::cout << string << std::endl;
-	    XMLString::release(&string);
+	for (uint i = 0; i < attrs.getLength(); i++) {
+		char* attrName = XMLString::transcode(attrs.getQName(i));
+	    //std::cout << "\t" << attrName << ": ";
+	    char* attrValue = XMLString::transcode(attrs.getValue(i));
+	    //std::cout << attrValue << std::endl;
+	    if (fRomElement != NULL) {
+	    	fRomElement->values[attrName] = attrValue;
+	    }
+	    XMLString::release(&attrName);
+	    XMLString::release(&attrValue);
 	}
 }
 
 
 void
-XMLDATHandler::endElement(const XMLCh* const uri,
+MAMEDATHandler::endElement(const XMLCh* const uri,
 	    const XMLCh* const localname,
 	    const XMLCh* const qname)
 {
 	char* string = XMLString::transcode(localname);
 	//std::cout << "endElement(" << string << ")" << std::endl;
+	//std::cout << fCharacters.str() << std::endl;
+
+	if (!strcasecmp(string, "game")) {
+		delete fGameElement;
+		fGameElement = NULL;
+	} else if (!strcasecmp(string, "rom")) {
+		Schema::InsertRomRow(fDatabase, fRomElement->values);
+		delete fRomElement;
+		fRomElement = NULL;
+	}
 	XMLString::release(&string);
-	std::cout << fCharacters.str() << std::endl;
 }
 
 
 void
-XMLDATHandler::characters(
+MAMEDATHandler::characters(
 	    const XMLCh* const chars,
 	    const unsigned int length)
 {
 	char* string = XMLString::transcode(chars);
 	fCharacters << string;
 	XMLString::release(&string);
+}
+
+
+// GameElement
+GameElement::GameElement()
+{
+
+}
+
+
+// RomElement
+RomElement::RomElement()
+{
+
 }

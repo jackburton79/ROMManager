@@ -24,11 +24,12 @@ int main(int argc, char** argv)
 	Database* db = dbFactory.GetDatabase("SQLite");
 	int status = db->Open("test.db");
 	if (status == 0)
-		status = InitDatabase(db);
+		status = Schema::Init(*db);
 	if (status != 0)
 		std::cerr << "Error: " << status << std::endl;
-	//DATFile file(argv[1]);
-	//file.ParseInto(db);
+
+	DATFile file(argv[1]);
+	file.ParseInto(*db);
 
 	db->Close();
 	delete db;
